@@ -1,8 +1,8 @@
 package main
 
 import (
+	"ZServer/Server/ZParser"
 	"fmt"
-	"strings"
 )
 
 func main() {
@@ -11,7 +11,13 @@ func main() {
 	//server.Run("127.0.0.1", 8000)
 	//b := make([]byte, 10)
 	//b[0] = 0xFF
-	//fmt.Println(string(b))
-	yn := strings.HasSuffix("aba", "abaaaaaa")
-	fmt.Println(yn)
+	req := []byte("clipboardprotocol?args1=112312&args2=34321\n\n\n\r")
+	parser := ZParser.ZParser{}
+	ptc, args, err := parser.ExtractRequestHeader(req)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	fmt.Println(ptc)
+	fmt.Println(args)
 }
