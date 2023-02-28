@@ -1,6 +1,7 @@
 package Server
 
 import (
+	"ZServer/Server/ZParser"
 	"bufio"
 	"fmt"
 	"net"
@@ -33,13 +34,29 @@ type ZServer struct {
 	plugins pluginInfo
 }
 
-func (s *ZServer) Handler(ctx Context) {
+// HandleNewConnection 处理新的网络连接
+func (s *ZServer) HandleNewConnection(conn net.Conn) {
 	defer func() {
 		err := recover()
 		if err != nil {
 			fmt.Println(err)
 		}
 	}()
+
+	reader := bufio.NewReaderSize(conn, 2048)
+	buffer := make([]byte, 1024)
+	_, err := reader.Read(buffer)
+
+	if err != nil {
+		conn.Close()
+	}
+
+	parser := ZParser.NewZParser()
+	err = parser.ExtractRequestHeader(buffer)
+	if err != nil {
+		fmt.Printf("Meet error when extracting request header. IP: %v\n", conn.RemoteAddr().String())
+		conn.Write([]byte("400: Invalidate request header"))
+	}
 }
 
 // AddPlugin 添加插件到Server

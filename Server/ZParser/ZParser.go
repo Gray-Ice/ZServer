@@ -6,35 +6,41 @@ import (
 	"strings"
 )
 
+var endFlag = []byte("\n\n\n\r")
+var protocolSeparatorFlag = []byte("?")
+
+// Parser 网络解析器应该遵循该Parser接口，参数是用户第一次发来的网络请求，返回的string是提取出的协议名，map是参数，error是是否有错误
+type Parser interface {
+	ExtractRequestHeader([]byte) (string, map[string]string, error)
+}
+
+// ZParser 请求解析器
 type ZParser struct {
-	Protocol string
-	Args     map[string]string
+	Protocol       string
+	Args           map[string]string
+	BinaryStartPos int
 }
 
 func NewZParser() *ZParser {
 	return &ZParser{}
 }
 
-var endFlag = []byte("\n\n\n\r")
-var protocolSeparatorFlag = []byte("?")
-
-/*
- * 解析请求头。请求头之后就全是二进制文件了。
- */
-func (p *ZParser) ExtractRequestHeader(bytes []byte) (string, map[string]string, error) {
+// ExtractRequestHeader 用于从请求头提取信息
+// 返回的第一个参数是协议名，第二个是从网络请求中提取的参数，第三个是error
+func (p *ZParser) ExtractRequestHeader(bytes []byte) error {
 	endPos := bytes2.Index(bytes, endFlag)
 	if endPos <= 0 {
-		return "", nil, errors.New("the length of header less than or equal zero")
+		return errors.New("the length of header less than or equal zero")
 	}
 
 	requestInfo := bytes[:endPos]
-	if len(requestInfo) > 253 {
-		return "", nil, errors.New("request header too big. It should be less than 256 bytes")
+	if len(requestInfo) > 256 {
+		return errors.New("request header too big. It should be less than 256 bytes")
 	}
 
 	ptcolSeparatorPos := bytes2.Index(requestInfo, protocolSeparatorFlag)
 	if ptcolSeparatorPos <= 0 {
-		return "", nil, errors.New("the length of protocol less than or equal zero")
+		return errors.New("the length of protocol less than or equal zero")
 	}
 
 	protocol := string(requestInfo[:ptcolSeparatorPos])
@@ -42,7 +48,9 @@ func (p *ZParser) ExtractRequestHeader(bytes []byte) (string, map[string]string,
 
 	// 没有参数，返回
 	if ptcolSeparatorPos-endPos == 1 {
-		return protocol, args, nil
+		p.Protocol = protocol
+		p.BinaryStartPos = endPos + len(endFlag)
+		return nil
 	}
 
 	// 解析参数，例如: arg1=123&arg2=34122
@@ -56,5 +64,7 @@ func (p *ZParser) ExtractRequestHeader(bytes []byte) (string, map[string]string,
 
 		args[kv[0]] = kv[1]
 	}
-	return protocol, args, nil
+	p.Protocol = protocol
+	p.Args = args
+	return nil
 }
