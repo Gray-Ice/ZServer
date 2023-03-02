@@ -8,30 +8,11 @@ import (
 )
 
 // pluginInfo 用来存储插件的信息。目前是字典类型，先用函数包装操作，后续可能会用结构体替代
-type pluginInfo map[string]ZPlugin
-
-// AddPlugin 添加插件
-func (p pluginInfo) AddPlugin(name string, plugin ZPlugin) {
-	// 判断是否有重名的插件。如果有就panic
-	if _, ok := p[name]; ok {
-		panic(fmt.Errorf("repeat plugin name %v", name))
-	}
-	p[name] = plugin // 添加插件
-}
-
-// GetPlugin 如果插件存在就返回插件，否则返回nil
-func (p pluginInfo) GetPlugin(name string) (ZPlugin, bool) {
-	if plugin, ok := p[name]; ok {
-		return plugin, true
-	}
-
-	return nil, false
-}
 
 type ZServer struct {
 	port    int
 	address string
-	plugins pluginInfo
+	Plugins *ZPlugins
 }
 
 // HandleNewConnection 处理新的网络连接
@@ -43,30 +24,82 @@ func (s *ZServer) HandleNewConnection(conn net.Conn) {
 		}
 	}()
 
+	// 读取字节
 	reader := bufio.NewReaderSize(conn, 2048)
 	buffer := make([]byte, 1024)
 	_, err := reader.Read(buffer)
 
 	if err != nil {
 		conn.Close()
+		return
 	}
 
+	// 解析请求头
 	parser := ZParser.NewZParser()
 	err = parser.ExtractRequestHeader(buffer)
+	// 拒绝不遵守协议的链接
 	if err != nil {
 		fmt.Printf("Meet error when extracting request header. IP: %v\n", conn.RemoteAddr().String())
 		conn.Write([]byte("400: Invalidate request header"))
+		conn.Close()
+		return
 	}
-}
 
-// AddPlugin 添加插件到Server
-func (s *ZServer) AddPlugin(name string, plugin ZPlugin) {
-	s.plugins.AddPlugin(name, plugin)
+	// 使用context记录信息
+	ctx := NewContext(conn, parser.Protocol, s, parser.Args, buffer[parser.BinaryStartPos:])
+
+	// 查询适用的协议
+	plugins := s.Plugins.GetPlugins()
+	var targetplugin ZPlugin
+	for _, plugin := range plugins {
+		fmt.Println("Finding plugin")
+		if plugin.IsTarget(parser.Protocol) {
+			targetplugin = plugin
+			break
+		}
+	}
+
+	// 没有合适的插件
+	if targetplugin == nil {
+		conn.Write([]byte(fmt.Sprintf("Unsupport protocol: %v. Your server haven't install a plugin about this protocol", parser.Protocol)))
+		conn.Close()
+		return
+	}
+
+	// 输出采用的协议
+	fmt.Println(targetplugin.Name())
+
+	err = targetplugin.FirstTouch(ctx)
+	if err != nil {
+		conn.Write([]byte(fmt.Sprintf("error when plugin %v process your request: %v", targetplugin.Name(), err)))
+		conn.Close()
+		return
+	}
+
+	for {
+		_, err = reader.Read(buffer)
+		if err != nil {
+			conn.Close()
+			return
+		}
+		_, err := targetplugin.HandleBytes(buffer)
+		if err != nil {
+			conn.Write([]byte(fmt.Sprintf("error when plugin %v process your request: %v", targetplugin.Name(), err)))
+			conn.Close()
+			return
+		}
+
+		if targetplugin.IsClosable() {
+			conn.Close()
+			targetplugin.Reset()
+			return
+		}
+	}
 }
 
 func (s *ZServer) Run(address string, port int) {
 
-	listen, err := net.Listen("tcp", "0.0.0.0:8000")
+	listen, err := net.Listen("tcp", fmt.Sprintf("%v:%v", address, port))
 	if err != nil {
 		panic(err)
 	}
@@ -77,19 +110,12 @@ func (s *ZServer) Run(address string, port int) {
 		if err != nil {
 			continue
 		}
+
 		print(client.RemoteAddr().String())
-		reader := bufio.NewReader(client)
-		buffer := make([]byte, 1024)
-		readnum, err := reader.Read(buffer)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if readnum == 0 {
-			client.Close()
-			return
-		}
-		fmt.Printf("Read %v bytes\n", readnum)
-		print(string(buffer))
-		client.Close()
+		go s.HandleNewConnection(client)
 	}
+}
+
+func NewServer() *ZServer {
+	return &ZServer{Plugins: NewZPlugins()}
 }
