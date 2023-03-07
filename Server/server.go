@@ -23,6 +23,7 @@ func (s *ZServer) HandleNewConnection(conn net.Conn) {
 			fmt.Println(err)
 		}
 	}()
+	Logger.Info("IP地址", conn.RemoteAddr().String(), " 已连接")
 
 	// 读取字节
 	reader := bufio.NewReaderSize(conn, 2048)
@@ -91,12 +92,15 @@ func (s *ZServer) HandleNewConnection(conn net.Conn) {
 
 		if targetplugin.IsClosable() {
 			conn.Close()
+			Logger.Info("IP地址: ", conn.RemoteAddr().String(), " 已断开连接")
 			targetplugin.Reset()
 			return
 		}
 	}
 }
 
+// Run 是ZServer的入口函数，它将监听address:port，并处理每一条发送过来的TCP连接
+// 如果TCP连接不遵守ZServer所规定的数据格式或ZServer没有支持该TCP数据格式的插件，该TCP连接将会被ZServer主动断开
 func (s *ZServer) Run(address string, port int) {
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("%v:%v", address, port))
@@ -111,7 +115,6 @@ func (s *ZServer) Run(address string, port int) {
 			continue
 		}
 
-		print(client.RemoteAddr().String())
 		go s.HandleNewConnection(client)
 	}
 }
