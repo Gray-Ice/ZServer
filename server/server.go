@@ -1,7 +1,7 @@
-package Server
+package server
 
 import (
-	"ZServer/Server/ZParser"
+	"ZServer/server/ZParser"
 	"bufio"
 	"fmt"
 	"net"

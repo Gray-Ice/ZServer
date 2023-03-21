@@ -1,13 +1,13 @@
-package Plugins
+package plugin
 
 import (
-	"ZServer/Server"
+	"ZServer/server"
 	"errors"
 	"fmt"
 	"strconv"
 )
 
-// ClipboardPlugin 实现了ZServer/Server.ZPlugins接口
+// ClipboardPlugin 实现了ZServer/server.ZPlugins接口
 type ClipboardPlugin struct {
 	name         string
 	closeable    bool
@@ -38,7 +38,7 @@ func (p *ClipboardPlugin) IsCloseable() bool {
 }
 
 // FirstTouch 用于建立连接后的第一次读取，此次读取将会从TCP流中提取足够的信息，将信息抽象成Context
-func (p *ClipboardPlugin) FirstTouch(ctx *Server.Context) error {
+func (p *ClipboardPlugin) FirstTouch(ctx *server.Context) error {
 	stextSize, ok := ctx.Args["textSize"]
 	if !ok {
 		return errors.New("can not get textSize field from args")
