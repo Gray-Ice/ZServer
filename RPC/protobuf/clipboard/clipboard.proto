@@ -1,8 +1,13 @@
 syntax = "proto3";
 package clipboard;
-
+import "google/protobuf/empty.proto";
 option go_package = "protobuf/clipboard";
 
-message Clipboard {
+message ClipboardContent {
   string text = 1;
+}
+
+service Clipboard {
+  rpc RecvClipboardContent(ClipboardContent) returns (google.protobuf.Empty) {}
+  rpc SendClipboardContent(google.protobuf.Empty) returns (ClipboardContent) {}
 }
