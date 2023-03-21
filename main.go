@@ -1,16 +1,15 @@
 package main
 
 import (
-	"ZServer/Plugins"
-	"ZServer/Server"
-	"github.com/sirupsen/logrus"
+	"ZServer/plugin"
+	"ZServer/server"
 )
 
 func main() {
-	logrus.New()
-	server := Server.NewServer()
-	clipboard := Plugins.NewClipboardPlugin()
-	server.Plugins.AddPlugin(&clipboard)
+	zserver := server.NewServer()
+	server.Logger.Info("Something")
+	clipboard := plugin.NewClipboardPlugin()
+	zserver.Plugins.AddPlugin(&clipboard)
 
-	server.Run("127.0.0.1", 8000)
+	zserver.Run("127.0.0.1", 8000)
 }
