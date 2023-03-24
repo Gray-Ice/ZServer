@@ -1,9 +1,12 @@
 package plugin
 
 import (
+	pb "ZServer/RPC/protobuf/clipboard"
 	"ZServer/server"
+	"context"
 	"errors"
 	"fmt"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"strconv"
 )
 
@@ -87,4 +90,13 @@ func (p *ClipboardPlugin) Reset() {
 }
 func (p *ClipboardPlugin) IsClosable() bool {
 	return p.closeable
+}
+
+type ClipboardRPCServer struct {
+	pb.UnimplementedClipboardServerServer
+}
+
+func (s *ClipboardRPCServer) SendClipboard(ctx context.Context, in *pb.ClipboardContent) (*emptypb.Empty, error) {
+	fmt.Println(in.GetText())
+	return &emptypb.Empty{}, nil
 }

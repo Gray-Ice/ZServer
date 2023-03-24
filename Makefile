@@ -5,6 +5,5 @@ allpbf: clipboard.proto
 clipboard.proto:
 				protoc -I=${PROTOBUF_INPUT_DIR}\clipboard \
 				 --go_out=${PROTOBUF_OUTPUT_DIR} \
-				 --go_opt=paths
-				  --go-grpc_out=${PROTOBUF_OUTPUT_DIR} \
-				   --go-grpc_opt=${PROTOBUF_INPUT_DIR}\clipboard\clipboard.proto
+ 				 --go-grpc_out=${PROTOBUF_OUTPUT_DIR} \
+				  ${PROTOBUF_INPUT_DIR}\clipboard\clipboard.proto
