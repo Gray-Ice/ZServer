@@ -1,4 +1,4 @@
-package ZParser
+package zParser
 
 import (
 	bytes2 "bytes"

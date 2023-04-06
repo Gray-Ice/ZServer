@@ -3,6 +3,7 @@ module ZServer
 go 1.20
 
 require (
+	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/sirupsen/logrus v1.9.0
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.30.0

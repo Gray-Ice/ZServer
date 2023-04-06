@@ -3,6 +3,7 @@ package main
 import (
 	"ZServer/plugin"
 	pb "ZServer/rpc/methods/clipboard"
+	"ZServer/server/interceptors"
 	"google.golang.org/grpc"
 	"net"
 	"time"
@@ -14,7 +15,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.AuthInterceptor),
+	)
 	go func() {
 		pb.RegisterClipboardServer(s, server)
 		if err := s.Serve(lis); err != nil {
