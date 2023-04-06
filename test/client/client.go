@@ -1,7 +1,7 @@
 package main
 
 import (
-	pb "ZServer/RPC/protobuf/clipboard"
+	pb "ZServer/rpc/protobuf/clipboard"
 	"context"
 	"fmt"
 	"google.golang.org/grpc"
