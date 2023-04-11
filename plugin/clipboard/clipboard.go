@@ -1,4 +1,4 @@
-package plugin
+package clipboard
 
 import (
 	pb "ZServer/rpc/methods/clipboard"

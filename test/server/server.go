@@ -1,8 +1,10 @@
 package main
 
 import (
-	"ZServer/plugin"
-	pb "ZServer/rpc/methods/clipboard"
+	"ZServer/plugin/auth"
+	"ZServer/plugin/clipboard"
+	authpb "ZServer/rpc/methods/auth"
+	clippb "ZServer/rpc/methods/clipboard"
 	"ZServer/server/interceptors"
 	"google.golang.org/grpc"
 	"net"
@@ -10,7 +12,8 @@ import (
 )
 
 func main() {
-	server := &plugin.ClipboardRPCServer{}
+	clipServer := &clipboard.ClipboardRPCServer{}
+	authServer := &auth.AuthRPCServer{}
 	lis, err := net.Listen("tcp", "127.0.0.1:8887")
 	if err != nil {
 		panic(err)
@@ -19,7 +22,8 @@ func main() {
 		grpc.UnaryInterceptor(interceptors.AuthInterceptor),
 	)
 	go func() {
-		pb.RegisterClipboardServer(s, server)
+		clippb.RegisterClipboardServer(s, clipServer)
+		authpb.RegisterAuthServer(s, authServer)
 		if err := s.Serve(lis); err != nil {
 			panic(err)
 		}
