@@ -14,7 +14,7 @@ import (
 func main() {
 	clipServer := &clipboard.ClipboardRPCServer{}
 	authServer := &auth.AuthRPCServer{}
-	lis, err := net.Listen("tcp", "127.0.0.1:8887")
+	lis, err := net.Listen("tcp", "0.0.0.0:8887")
 	if err != nil {
 		panic(err)
 	}
