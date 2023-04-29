@@ -1,8 +1,0 @@
-syntax = "proto3";
-package clipboard;
-
-option go_package = "protobuf/clipboard";
-
-message Clipboard {
-  string text = 1;
-}

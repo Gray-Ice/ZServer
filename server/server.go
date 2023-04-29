@@ -1,7 +1,7 @@
 package server
 
 import (
-	"ZServer/server/ZParser"
+	"ZServer/server/zParser"
 	"bufio"
 	"fmt"
 	"net"
@@ -36,7 +36,7 @@ func (s *ZServer) HandleNewConnection(conn net.Conn) {
 	}
 
 	// 解析请求头
-	parser := ZParser.NewZParser()
+	parser := zParser.NewZParser()
 	err = parser.ExtractRequestHeader(buffer)
 	// 拒绝不遵守协议的链接
 	if err != nil {
