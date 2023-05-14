@@ -1,15 +1,30 @@
 package main
 
 import (
-	"ZServer/plugin"
-	"ZServer/server"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"net/http"
 )
 
-func main() {
-	zserver := server.NewServer()
-	server.Logger.Info("Something")
-	clipboard := plugin.NewClipboardPlugin()
-	zserver.Plugins.AddPlugin(&clipboard)
+var upgrader = websocket.Upgrader{}
 
-	zserver.Run("127.0.0.1", 8000)
+func socketEcho(c *gin.Context) {
+	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+	defer ws.Close()
+	mt, message, err := ws.ReadMessage()
+	fmt.Print(message)
+	ws.WriteMessage(mt, []byte("hello, this is server response"))
+}
+func main() {
+
+	//http.HandleFunc("/echo", socketEcho)
+	//http.ListenAndServe()
+	r := gin.Default()
+	r.GET("/echo", socketEcho)
+	r.GET("/hello", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"message": "hello"}) })
+	r.Run("127.0.0.1:8080")
 }
