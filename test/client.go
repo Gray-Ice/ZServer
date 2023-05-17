@@ -2,25 +2,51 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
 	"os"
 	"os/signal"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
+
+const (
+	HearBeatCode          = 4001
+	PhoneCallbackCode     = 4002
+	AuthCode              = 4003
+	ErrorCode             = 4004
+	CreateConnectionCode  = 4005
+	PhoneHandleResultCode = 4006
+	RefuseConnectionCode  = 4007
+	UnSupportedCode       = 1003
+)
+
+type WSMessage struct {
+	Type    int
+	Message []byte
+	Err     error
+}
+
+type ClientMessage struct {
+	Code               int    `json:"code"`
+	Message            string `json:"message"`
+	CallBackUrl        string `json:"call-back-url"`
+	CallBackMethod     string `json:"call-back-method"`
+	CallBackPluginName string `json:"call-back-plugin-name"`
+}
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
 
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
+	fmt.Println(*addr)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/echo"}
+	u := url.URL{Scheme: "ws", Host: *addr, Path: "/clientConnection"}
 	log.Printf("connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
@@ -28,49 +54,22 @@ func main() {
 		log.Fatal("dial:", err)
 	}
 	defer c.Close()
-
-	done := make(chan struct{})
-
-	go func() {
-		defer close(done)
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				return
-			}
-			log.Printf("recv: %s", message)
-		}
-	}()
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
+	req := ClientMessage{}
+	req.Code = CreateConnectionCode
+	err = c.WriteJSON(req)
+	if err != nil {
+		fmt.Println("paniced here!")
+		panic(err)
+	}
 
 	for {
-		select {
-		case <-done:
-			return
-		case t := <-ticker.C:
-			err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
-			if err != nil {
-				log.Println("write:", err)
-				return
-			}
-		case <-interrupt:
-			log.Println("interrupt")
-
-			// Cleanly close the connection by sending a close message and then
-			// waiting (with timeout) for the server to close the connection.
-			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			if err != nil {
-				log.Println("write close:", err)
-				return
-			}
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-			}
-			return
+		rep := ClientMessage{}
+		err = c.ReadJSON(&rep)
+		if err != nil {
+			panic(err)
 		}
+		fmt.Println(rep)
+		time.Sleep(time.Duration(time.Second))
+
 	}
 }
