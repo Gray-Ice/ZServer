@@ -27,5 +27,6 @@ func main() {
 	//r.GET("/echo", socketEcho)
 	//r.GET("/hello", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"message": "hello"}) })
 	r.GET("/clientConnection", core.LongClientConnection)
+	r.GET("/phoneConnection", core.PhoneLongConnection)
 	r.Run("127.0.0.1:8080")
 }

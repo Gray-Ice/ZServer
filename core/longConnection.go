@@ -19,6 +19,8 @@ const (
 	PhoneHandleResultCode = 4006
 	RefuseConnectionCode  = 4007
 	UnSupportedCode       = 1003
+	QueryPluginsCode      = 4008 // query plugins
+
 )
 
 type WSMessage struct {
@@ -39,6 +41,7 @@ var upgrader = websocket.Upgrader{}
 func PhoneLongConnection(c *gin.Context) {
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	defer ws.Close()
@@ -50,6 +53,7 @@ func PhoneLongConnection(c *gin.Context) {
 		rep["code"] = ErrorCode
 		rep["message"] = "Can not parse your request to json"
 		ws.WriteJSON(rep)
+		fmt.Print(err)
 		return
 	}
 
@@ -117,6 +121,7 @@ func LongClientConnection(c *gin.Context) {
 	if GlobalConnection.IsFromClientChannelAlive() {
 		rep := ClientMessage{}
 		rep.Code = ErrorCode
+		rep.Message = "Having a client connection already."
 		ws.WriteJSON(rep)
 		return
 	}
