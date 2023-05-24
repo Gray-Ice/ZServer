@@ -48,6 +48,10 @@ func PhoneLongConnection(c *gin.Context) {
 	//mt, message, err := ws.ReadMessage()
 	clientRequest := ClientMessage{}
 	err = ws.ReadJSON(&clientRequest)
+	//mt, message, err := ws.ReadMessage()
+	//fmt.Printf("This is message type: %d \n", mt)
+	//fmt.Println("This is the message")
+	//fmt.Println(message)
 	if err != nil {
 		rep := make(map[string]interface{})
 		rep["code"] = ErrorCode
