@@ -1,6 +1,6 @@
-// // Package longconn Long connection is using for keep connection between PC and Phone.
-// // It is not only provide a way to keep long connection to make phone or PC knows is each other still online,
-// // it also supports the function to make Phone call PC's Route.
+// // Package longconn Long connection is using for keep connection between ZPC and ZPhone.
+// // It is not only provide a way to keep long connection to make phone or ZPC knows is each other still online,
+// // it also supports the function to make ZPhone call ZPC's Route.
 package core
 
 import (
@@ -28,13 +28,6 @@ type WSMessage struct {
 	Message []byte
 	Err     error
 }
-type ClientMessage struct {
-	Code               int    `json:"code"`
-	Message            string `json:"message"`
-	CallBackUrl        string `json:"call-back-url"`
-	CallBackMethod     string `json:"call-back-method"`
-	CallBackPluginName string `json:"call-back-plugin-name"`
-}
 
 var upgrader = websocket.Upgrader{}
 
@@ -46,7 +39,7 @@ func PhoneLongConnection(c *gin.Context) {
 	}
 	defer ws.Close()
 	//mt, message, err := ws.ReadMessage()
-	clientRequest := ClientMessage{}
+	clientRequest := MessageFromClient{}
 	err = ws.ReadJSON(&clientRequest)
 	//mt, message, err := ws.ReadMessage()
 	//fmt.Printf("This is message type: %d \n", mt)
@@ -77,27 +70,34 @@ func PhoneLongConnection(c *gin.Context) {
 	if err != nil {
 		return
 	}
+	for {
+		// Receive phone message
+		clientRequest = MessageFromClient{}
+		err = ws.ReadJSON(&clientRequest)
+		fmt.Println(clientRequest)
+
+	}
 }
 
 func establishClientConnection(ws *websocket.Conn) bool {
-	clientRequest := ClientMessage{}
+	clientRequest := MessageFromClient{}
 	err := ws.ReadJSON(&clientRequest)
 	if err != nil {
-		response := ClientMessage{}
+		response := MessageFromClient{}
 		response.Code = ErrorCode
 		response.Message = fmt.Sprintf("You need send JSON format to server. This is error: %v", err)
 		ws.WriteJSON(response)
 		return false
 	}
 	if clientRequest.Code != CreateConnectionCode {
-		response := ClientMessage{}
+		response := MessageFromClient{}
 		response.Code = ErrorCode
 		response.Message = "You need send create connection code at first time."
 		ws.WriteJSON(response)
 		return false
 	}
 
-	response := ClientMessage{}
+	response := MessageFromClient{}
 	response.Code = CreateConnectionCode
 	err = ws.WriteJSON(response)
 	if err != nil {
@@ -123,7 +123,7 @@ func LongClientConnection(c *gin.Context) {
 
 	// If there is already have a client connection, refuse new client connection.
 	if GlobalConnection.IsFromClientChannelAlive() {
-		rep := ClientMessage{}
+		rep := MessageFromClient{}
 		rep.Code = ErrorCode
 		rep.Message = "Having a client connection already."
 		ws.WriteJSON(rep)
@@ -136,7 +136,7 @@ func LongClientConnection(c *gin.Context) {
 	}
 
 	// Set global channel variable
-	fromClientChannel := make(chan ClientMessage, 2)
+	fromClientChannel := make(chan MessageFromClient, 2)
 	GlobalConnection.SetFromClientChannel(fromClientChannel)
 	defer func() {
 		close(fromClientChannel)
@@ -144,11 +144,11 @@ func LongClientConnection(c *gin.Context) {
 	}()
 
 	// Convert websocket.ReadMessage() to channel, so that you can use select to handle it.
-	clientMessageChannel := make(chan ClientMessage, 1)
+	clientMessageChannel := make(chan MessageFromClient, 1)
 	go func() {
 		for {
 			fmt.Println("Running websocket to channel converter")
-			rep := ClientMessage{}
+			rep := MessageFromClient{}
 			err := ws.ReadJSON(&rep)
 			fmt.Println("Receive message form client!")
 			if err != nil {

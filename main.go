@@ -23,10 +23,11 @@ func main() {
 
 	//http.HandleFunc("/echo", socketEcho)
 	//http.ListenAndServe()
-	r := gin.Default()
+	r := core.Engine
 	//r.GET("/echo", socketEcho)
 	//r.GET("/hello", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"message": "hello"}) })
 	r.GET("/clientConnection", core.LongClientConnection)
 	r.GET("/phoneConnection", core.PhoneLongConnection)
-	r.Run("127.0.0.1:8080")
+	r.Run("0.0.0.0:8080")
+	//r.Run("127.0.0.1:8080")
 }

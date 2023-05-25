@@ -1,55 +1,73 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"strings"
+	"sync"
+	"time"
 )
 
-type Phone struct {
-	URL    string
-	Func   gin.HandlerFunc
-	Method string
+type ResetFlag int
+
+const (
+	TimeoutReset ResetFlag = iota // client required a request, but phone didn't call back at the specify time.
+	NormalReset                   // client required a phone request, and phone  requested in the specify time
+)
+
+type _Plugins struct {
+	lock    sync.Locker
+	plugins map[string]Plugin
 }
 
-type PC struct {
-	URL    string
-	Func   gin.HandlerFunc
-	Method string
-}
-type Plugin struct {
-	Name  string
-	Phone *Phone
-	PC    *PC
+// GetPluginByName return a plugin depend on plugin name
+func (p *_Plugins) GetPluginByName(name string) (Plugin, bool) {
+	p.lock.Lock()
+	plugin, ok := p.plugins[name]
+	p.lock.Unlock()
+	return plugin, ok
 }
 
-// SetPhone setting the configuration of Phone
-func (p *Plugin) SetPhone(url string, method string, handlerFunc gin.HandlerFunc) {
-	p.Phone = &Phone{URL: url, Method: method, Func: handlerFunc}
+func (p *_Plugins) AddPlugin(plugin Plugin) {
+	newPluginName := plugin.Name()
+	p.lock.Lock()
+	_, ok := p.plugins[newPluginName]
+	p.lock.Unlock()
+	if ok {
+		panic(errors.New(fmt.Sprintf("Plugin name %s already added!\n", newPluginName)))
+	}
+
+	p.lock.Lock()
+	p.plugins[newPluginName] = plugin
+	p.lock.Unlock()
 }
 
-// SetPC setting the configuration of PC
-func (p *Plugin) SetPC(url string, method string, handlerFunc gin.HandlerFunc) {
-	p.PC = &PC{URL: url, Method: method, Func: handlerFunc}
+type Phone interface {
+	PhoneRequestHandler(*gin.Context)
+	PhoneURL() string
+	PhoneRequestMethod() string // Return the method that phone will
 }
 
-// NewPlugin return a Plugin.
-// parameter name receive a string plugin name.
-func NewPlugin(name string) (*Plugin, error) {
-	return &Plugin{Name: name}, nil
+// Client is defined to handle the request from client
+type Client interface {
+	ClientRequestHandler(*gin.Context)
+	ClientURL() string
+	ClientRequestMethod() string // Return the method that phone will
 }
 
-// LoadPlugins will load the config inside Plugin to Gin server
-func LoadPlugins(engine *gin.Engine, plugins []Plugin) {
+type Plugin interface {
+	Phone
+	Client
+	Name() string
+	Reset(int)
+	Timeout() time.Duration
+}
+
+func LoadPlugins(plugins []Plugin) {
 	for _, plugin := range plugins {
-		if plugin.PC == nil {
-			panic(fmt.Sprintf("Plugin %v need to implement PC structure. Search Plugin.SetPC() to get more detail.", plugin.Name))
-		} else if plugin.Phone == nil {
-			panic(fmt.Sprintf("Plugin %v need to implement Phone structure. Search Plugin.SetPhone() to get more detail.", plugin.Name))
-		}
-
-		engine.RouterGroup.Handle(strings.ToUpper(plugin.PC.Method), plugin.PC.URL, plugin.PC.Func)
-		engine.RouterGroup.Handle(strings.ToUpper(plugin.Phone.Method), plugin.Phone.URL, plugin.Phone.Func)
+		Engine.RouterGroup.Handle(strings.ToUpper(plugin.PhoneRequestMethod()), plugin.PhoneURL(), plugin.PhoneRequestHandler)
+		Engine.RouterGroup.Handle(strings.ToUpper(plugin.ClientRequestMethod()), plugin.ClientURL(), plugin.ClientRequestHandler)
 	}
 
 }

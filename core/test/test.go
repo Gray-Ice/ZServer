@@ -24,15 +24,15 @@ func main() {
 		panic(err)
 	}
 	defer c.Close()
-	req := core.ClientMessage{}
+	req := core.MessageFromClient{}
 	req.Code = core.CreateConnectionCode
 	c.WriteJSON(req)
 	for {
-		req := core.ClientMessage{}
+		req := core.MessageFromClient{}
 		req.Code = core.HearBeatCode
 		fmt.Println("Writing message")
 		c.WriteJSON(req)
-		rep := core.ClientMessage{}
+		rep := core.MessageFromClient{}
 		err = c.ReadJSON(&rep)
 		fmt.Println(rep)
 		time.Sleep(time.Duration(time.Second))

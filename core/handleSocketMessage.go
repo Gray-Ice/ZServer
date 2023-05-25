@@ -5,10 +5,10 @@ import (
 )
 
 // handle messages from client
-func handleClientChannelMessage(ws *websocket.Conn, msg *ClientMessage) {
+func handleClientChannelMessage(ws *websocket.Conn, msg *MessageFromClient) {
 	switch msg.Code {
 	case HearBeatCode:
-		rep := ClientMessage{}
+		rep := MessageFromClient{}
 		rep.Code = HearBeatCode
 		err := ws.WriteJSON(rep)
 		if err != nil {
@@ -19,6 +19,6 @@ func handleClientChannelMessage(ws *websocket.Conn, msg *ClientMessage) {
 }
 
 // handle to client message
-func handleToClientChannel(ws *websocket.Conn, msg *ClientMessage) {
+func handleToClientChannel(ws *websocket.Conn, msg *MessageFromClient) {
 
 }
