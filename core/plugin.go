@@ -51,16 +51,16 @@ type Phone interface {
 	PhoneRequestMethod() string // Return the method that phone will
 }
 
-// ClientSide is defined to handle the request from client
-type ClientSide interface {
+// Client is defined to handle the request from client
+type Client interface {
 	ClientRequestHandler(*gin.Context)
 	ClientURL() string
 	ClientRequestMethod() string // Return the method that phone will
 }
 
 type Plugin interface {
-	PhoneSide
-	ClientSide
+	Phone
+	Client
 	Name() string
 	Reset(int)
 	Timeout() time.Duration
