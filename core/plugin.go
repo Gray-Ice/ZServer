@@ -43,22 +43,22 @@ func (p *_Plugins) AddPlugin(plugin Plugin) {
 	p.lock.Unlock()
 }
 
-type Phone interface {
+type PhoneSide interface {
 	PhoneRequestHandler(*gin.Context)
 	PhoneURL() string
 	PhoneRequestMethod() string // Return the method that phone will
 }
 
-// Client is defined to handle the request from client
-type Client interface {
+// ClientSide is defined to handle the request from client
+type ClientSide interface {
 	ClientRequestHandler(*gin.Context)
 	ClientURL() string
 	ClientRequestMethod() string // Return the method that phone will
 }
 
 type Plugin interface {
-	Phone
-	Client
+	PhoneSide
+	ClientSide
 	Name() string
 	Reset(int)
 	Timeout() time.Duration
