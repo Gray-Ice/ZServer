@@ -2,6 +2,7 @@ package main
 
 import (
 	"ZServer/core"
+	"ZServer/plugins/clipboard"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -24,6 +25,10 @@ func main() {
 	//http.HandleFunc("/echo", socketEcho)
 	//http.ListenAndServe()
 	r := core.Engine
+	plugins := make([]core.Plugin, 0)
+	clipPlugin := clipboard.Clipboard{}
+	plugins = append(plugins, &clipPlugin)
+	core.LoadPlugins(plugins)
 	//r.GET("/echo", socketEcho)
 	//r.GET("/hello", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"message": "hello"}) })
 	r.GET("/clientConnection", core.LongClientConnection)
