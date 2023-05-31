@@ -43,7 +43,9 @@ func (p *_Plugins) AddPlugin(plugin Plugin) {
 	p.lock.Unlock()
 }
 
-type PhoneSide interface {
+// Phone An API for handling mobile-related requests.
+// It is used to provide parameters to the mobile device so that it can understand the client's intent.
+type Phone interface {
 	PhoneRequestHandler(*gin.Context)
 	PhoneURL() string
 	PhoneRequestMethod() string // Return the method that phone will
@@ -66,6 +68,7 @@ type Plugin interface {
 
 func LoadPlugins(plugins []Plugin) {
 	for _, plugin := range plugins {
+		fmt.Println(plugin.Name())
 		Engine.RouterGroup.Handle(strings.ToUpper(plugin.PhoneRequestMethod()), plugin.PhoneURL(), plugin.PhoneRequestHandler)
 		Engine.RouterGroup.Handle(strings.ToUpper(plugin.ClientRequestMethod()), plugin.ClientURL(), plugin.ClientRequestHandler)
 	}

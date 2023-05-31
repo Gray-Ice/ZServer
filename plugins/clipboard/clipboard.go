@@ -1,11 +1,13 @@
 package clipboard
 
 import (
+	"ZServer/core"
 	"github.com/gin-gonic/gin"
 	"time"
 )
 
 type Clipboard struct {
+	core.Plugin
 }
 
 func (c *Clipboard) Name() string {
