@@ -71,6 +71,13 @@ func (c *_GlobalConnects) GetToPhoneChannel() chan CommonMessage {
 	return channel
 }
 
+func (c *_GlobalConnects) GetToClientChannel() chan CommonMessage {
+	c.locker.Lock()
+	channel := c.toClientChannel
+	c.locker.Unlock()
+	return channel
+}
+
 func (c *_GlobalConnects) IsClientAlive() bool {
 	c.locker.Lock()
 	status := c.clientStatus
@@ -80,11 +87,13 @@ func (c *_GlobalConnects) IsClientAlive() bool {
 
 func init() {
 	// Initialize toPhoneChannel
-	GlobalConnection = &_GlobalConnects{toPhoneChannel: make(chan CommonMessage, 2),
-		phoneStatus:  false,
-		clientStatus: false,
-		phoneName:    "",
-		clientName:   "",
+	GlobalConnection = &_GlobalConnects{
+		toPhoneChannel:  make(chan CommonMessage, 2),
+		toClientChannel: make(chan CommonMessage, 2),
+		phoneStatus:     false,
+		clientStatus:    false,
+		phoneName:       "",
+		clientName:      "",
 	}
 	Plugins = _Plugins{plugins: make(map[string]Plugin)}
 	Engine = gin.New()

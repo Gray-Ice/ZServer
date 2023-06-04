@@ -23,6 +23,8 @@ const (
 	QueryPluginsCode         = 4008 // query plugins
 	DisConnectCode           = 4009
 	NotFindAnotherDeviceCode = 4010
+	DeviceOnlineCode         = 4011
+	DeviceOfflineCode        = 4012
 )
 
 type WSMessage struct {
@@ -66,13 +68,10 @@ func PhoneLongConnection(c *gin.Context) {
 		ws.WriteJSON(rep)
 		return
 	}
-	//mt, message, err := ws.ReadMessage()
+
+	// try to create connection
 	clientRequest := CommonMessage{}
 	err = ws.ReadJSON(&clientRequest)
-	//mt, message, err := ws.ReadMessage()
-	//fmt.Printf("This is message type: %d \n", mt)
-	//fmt.Println("This is the message")
-	//fmt.Println(message)
 	if err != nil {
 		rep := make(map[string]interface{})
 		rep["code"] = ErrorCode
@@ -90,7 +89,7 @@ func PhoneLongConnection(c *gin.Context) {
 		return
 	}
 
-	// Agree connection.Tell the client.
+	// Agree connection.Tell the phone.
 	rep := make(map[string]interface{})
 	rep["code"] = CreateConnectionCode
 	rep["message"] = ""
@@ -105,6 +104,8 @@ func PhoneLongConnection(c *gin.Context) {
 		for {
 			req := CommonMessage{}
 			err := ws.ReadJSON(&req)
+			fmt.Printf("Error occurred when reading message from phone %s\n", err)
+			GlobalConnection.SetPhoneAlive(false)
 			if err != nil {
 				return
 			}
@@ -115,17 +116,76 @@ func PhoneLongConnection(c *gin.Context) {
 
 	GlobalConnection.SetPhoneAlive(true)
 	defer GlobalConnection.SetPhoneAlive(false)
-	tempPhoneChannel := GlobalConnection.GetToPhoneChannel()
-	toPhoneChannel := tempPhoneChannel
+
+	toPhoneChannel := GlobalConnection.GetToPhoneChannel()
+	toClientChannel := GlobalConnection.GetToClientChannel()
+
+	lastClientStatus := GlobalConnection.IsClientAlive()
 	// TODO: 需要处理以下状况: 1.手机端连接了，客户端未连接。2.客户端突然断开。3.手机端突然断开。4.双端同时断开.
 	for {
-		if toPhoneChannel == nil {
-			err := onlyHandlePhoneConnection(ws, fromPhoneChannel)
+		//err := onlyHandlePhoneConnection(ws, fromPhoneChannel)
+		select {
+		// forward messages from client, this channel never closes
+		case clientMessage := <-toPhoneChannel:
+			{
+				// not expected status code
+				if clientMessage.Code != PhoneCallbackCode {
+					msg := CommonMessage{
+						Code:    ErrorCode,
+						Message: fmt.Sprintf("Unexpected status code: %d\n", clientMessage.Code),
+					}
+					toClientChannel <- msg
+				}
+
+				err := ws.WriteJSON(clientMessage)
+				if err != nil {
+					fmt.Printf("Error occurred when forwarding message from client to phone: %s\n", err)
+					return
+				}
+				//ws.WriteJSON()
+			}
+			break
+		case phoneMsg, ok := <-fromPhoneChannel:
+			{
+				if !ok {
+					fmt.Println("Phone has disconnected.")
+					return
+				}
+				if phoneMsg.Code == HearBeatCode {
+					rep := CommonMessage{
+						Code: HearBeatCode,
+					}
+
+					err := ws.WriteJSON(rep)
+					// Heartbeat error, close connection and stop function.
+					if err != nil {
+						fmt.Printf("Meet error when write heartbeat to phone\n, error: %s", err)
+						return
+					}
+				}
+			}
+			break
+		default:
+			fmt.Println("Loop finished, nothing...")
+		}
+
+		clientStatus := GlobalConnection.IsClientAlive()
+
+		if clientStatus != lastClientStatus {
+			if clientStatus {
+				rep := CommonMessage{Code: DeviceOnlineCode, Message: "Client is online now"}
+				err = ws.WriteJSON(rep)
+			} else {
+				rep := CommonMessage{Code: DeviceOfflineCode, Message: "Client is online now"}
+				err = ws.WriteJSON(rep)
+			}
+
+			lastClientStatus = clientStatus
 			if err != nil {
+				fmt.Printf("Error occurred when feedbacking device status: %s", err)
 				return
 			}
 		}
-		select {}
 	}
 }
 
