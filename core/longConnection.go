@@ -59,6 +59,13 @@ func PhoneLongConnection(c *gin.Context) {
 		return
 	}
 	defer ws.Close()
+
+	// Do not allow repeat connection or multi connection
+	if GlobalConnection.IsPhoneAlive() {
+		rep := CommonMessage{Code: ErrorCode, Message: "Have a phone connection already.This connection will be closed."}
+		ws.WriteJSON(rep)
+		return
+	}
 	//mt, message, err := ws.ReadMessage()
 	clientRequest := CommonMessage{}
 	err = ws.ReadJSON(&clientRequest)
@@ -106,6 +113,8 @@ func PhoneLongConnection(c *gin.Context) {
 		}
 	}()
 
+	GlobalConnection.SetPhoneAlive(true)
+	defer GlobalConnection.SetPhoneAlive(false)
 	tempPhoneChannel := GlobalConnection.GetToPhoneChannel()
 	toPhoneChannel := tempPhoneChannel
 	// TODO: 需要处理以下状况: 1.手机端连接了，客户端未连接。2.客户端突然断开。3.手机端突然断开。4.双端同时断开.
