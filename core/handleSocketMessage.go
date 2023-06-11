@@ -22,12 +22,10 @@ func handleClientChannelMessage(ws *websocket.Conn, msg *CommonMessage, toPhoneC
 		}
 		break
 	case PhoneCallbackCode:
-		if toPhoneChannel == nil {
-			return
-		}
-
 		toPhoneChannel <- *msg
 		break
+	default:
+		fmt.Printf("unknown code from client:%d", msg.Code)
 	}
 
 }

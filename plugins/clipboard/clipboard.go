@@ -25,11 +25,11 @@ func (c *Clipboard) PhoneRequestHandler(ctx *gin.Context) {
 }
 
 func (c *Clipboard) PhoneURL() string {
-	return "/clipboard/receive"
+	return "/clipboard/phone"
 }
 
 func (c *Clipboard) PhoneRequestMethod() string {
-	return "post"
+	return "get"
 }
 func (c *Clipboard) ClientRequestHandler(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{"text": "I don't know what should I tell you."})

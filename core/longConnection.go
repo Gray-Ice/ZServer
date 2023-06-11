@@ -63,6 +63,7 @@ func PhoneLongConnection(c *gin.Context) {
 	defer ws.Close()
 
 	// Do not allow repeat connection or multi connection
+	fmt.Println("Connected.")
 	if GlobalConnection.IsPhoneAlive() {
 		rep := CommonMessage{Code: ErrorCode, Message: "Have a phone connection already.This connection will be closed."}
 		ws.WriteJSON(rep)
@@ -73,26 +74,20 @@ func PhoneLongConnection(c *gin.Context) {
 	clientRequest := CommonMessage{}
 	err = ws.ReadJSON(&clientRequest)
 	if err != nil {
-		rep := make(map[string]interface{})
-		rep["code"] = ErrorCode
-		rep["message"] = "Can not parse your request to json"
+		rep := CommonMessage{Code: ErrorCode, Message: "Can not parse your request to json"}
 		ws.WriteJSON(rep)
 		fmt.Print(err)
 		return
 	}
 
 	if clientRequest.Code != CreateConnectionCode {
-		rep := make(map[string]interface{})
-		rep["code"] = ErrorCode
-		rep["message"] = "You need create connection first.Check your code."
+		rep := CommonMessage{Code: ErrorCode, Message: "You need create connection first.Check your code."}
 		ws.WriteJSON(rep)
 		return
 	}
 
 	// Agree connection.Tell the phone.
-	rep := make(map[string]interface{})
-	rep["code"] = CreateConnectionCode
-	rep["message"] = ""
+	rep := CommonMessage{Code: CreateConnectionCode, Message: ""}
 	err = ws.WriteJSON(rep)
 	if err != nil {
 		return
@@ -104,9 +99,9 @@ func PhoneLongConnection(c *gin.Context) {
 		for {
 			req := CommonMessage{}
 			err := ws.ReadJSON(&req)
-			fmt.Printf("Error occurred when reading message from phone %s\n", err)
 			GlobalConnection.SetPhoneAlive(false)
 			if err != nil {
+				fmt.Printf("Error occurred when reading message from phone %s\n", err)
 				return
 			}
 
@@ -145,6 +140,7 @@ func PhoneLongConnection(c *gin.Context) {
 				//ws.WriteJSON()
 			}
 			break
+
 		case phoneMsg, ok := <-fromPhoneChannel:
 			{
 				if !ok {
@@ -162,11 +158,11 @@ func PhoneLongConnection(c *gin.Context) {
 						fmt.Printf("Meet error when write heartbeat to phone\n, error: %s", err)
 						return
 					}
+				} else {
+					fmt.Println("Not Supported phone code,", phoneMsg.Code)
 				}
 			}
 			break
-		default:
-			fmt.Println("Loop finished, nothing...")
 		}
 
 		clientStatus := GlobalConnection.IsClientAlive()
@@ -272,15 +268,6 @@ func LongClientConnection(c *gin.Context) {
 	}()
 
 	toPhoneChannel := GlobalConnection.GetToPhoneChannel()
-	if toPhoneChannel == nil {
-		req := CommonMessage{Code: NotFindAnotherDeviceCode, Message: "Mobile device is not connected."}
-		err := ws.WriteJSON(req)
-		if err != nil {
-			fmt.Printf("An error occurred when telling client mobile device is not connected.%s \n", err)
-			return
-		}
-	}
-
 	for {
 		// Listen message from client or from ToClientChannel
 		select {
