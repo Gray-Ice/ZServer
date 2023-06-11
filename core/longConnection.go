@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"log"
+	"time"
 )
 
 const (
@@ -72,6 +73,12 @@ func PhoneLongConnection(c *gin.Context) {
 
 	// try to create connection
 	clientRequest := CommonMessage{}
+
+	err = ws.SetReadDeadline(time.Now().Add(time.Second * 3))
+	if err != nil {
+		fmt.Printf("Error occurred when reading setting ReadDeadLine %v\n", err)
+		return
+	}
 	err = ws.ReadJSON(&clientRequest)
 	if err != nil {
 		rep := CommonMessage{Code: ErrorCode, Message: "Can not parse your request to json"}
@@ -98,7 +105,14 @@ func PhoneLongConnection(c *gin.Context) {
 		defer close(fromPhoneChannel)
 		for {
 			req := CommonMessage{}
+
+			err = ws.SetReadDeadline(time.Now().Add(time.Second * 3))
+			if err != nil {
+				fmt.Printf("Error occurred when reading setting ReadDeadLine %v\n", err)
+				return
+			}
 			err := ws.ReadJSON(&req)
+
 			GlobalConnection.SetPhoneAlive(false)
 			if err != nil {
 				fmt.Printf("Error occurred when reading message from phone %s\n", err)
@@ -116,7 +130,6 @@ func PhoneLongConnection(c *gin.Context) {
 	toClientChannel := GlobalConnection.GetToClientChannel()
 
 	lastClientStatus := GlobalConnection.IsClientAlive()
-	// TODO: 需要处理以下状况: 1.手机端连接了，客户端未连接。2.客户端突然断开。3.手机端突然断开。4.双端同时断开.
 	for {
 		//err := onlyHandlePhoneConnection(ws, fromPhoneChannel)
 		select {
@@ -187,7 +200,13 @@ func PhoneLongConnection(c *gin.Context) {
 
 func establishClientConnection(ws *websocket.Conn) bool {
 	clientRequest := CommonMessage{}
-	err := ws.ReadJSON(&clientRequest)
+
+	err := ws.SetReadDeadline(time.Now().Add(time.Second * 3))
+	if err != nil {
+		fmt.Printf("Error occurred when reading setting ReadDeadLine %v\n", err)
+		return false
+	}
+	err = ws.ReadJSON(&clientRequest)
 	if err != nil {
 		response := CommonMessage{}
 		response.Code = ErrorCode
@@ -256,7 +275,13 @@ func LongClientConnection(c *gin.Context) {
 		for {
 			fmt.Println("Running websocket to channel converter")
 			rep := CommonMessage{}
-			err := ws.ReadJSON(&rep)
+
+			err := ws.SetReadDeadline(time.Now().Add(time.Second * 3))
+			if err != nil {
+				fmt.Printf("Error occurred when reading setting ReadDeadLine %v\n", err)
+				return
+			}
+			err = ws.ReadJSON(&rep)
 			fmt.Println("Receive message form client!")
 			if err != nil {
 				close(clientMessageChannel)
